@@ -1,24 +1,6 @@
 #lang racket
 (require redex)
 ;;; ISWIM is based on SECD machine, which is defined as
-;;; Instructions
-;;; -----------------------------------------------------------------------
-;;; nil    pushes a nil pointer onto the stack
-;;; ldc    pushes a constant argument onto the stack
-;;; ld     pushes the value of a variable onto the stack.
-;;;        The variable is indicated by the argument, a pair.
-;;;        The pair's car specifies the level, the cdr the position.
-;;;         So (1 . 3) gives the current function's (level 1) third parameter.
-;;; sel    expects two list arguments, and pops a value from the stack. The first
-;;         list is executed if the popped value was non-nil, the second list otherwise. Before one of these list pointers is made the new C, a pointer to the instruction following {\displaystyle sel}sel is saved on the dump.
-;;; join pops a list reference from the dump and makes this the new value of C. This instruction occurs at the end of both alternatives of a sel.
-;;; ldf takes one list argument representing a function. It constructs a closure (a pair containing the function and the current environment) and pushes that onto the stack.
-;;; ap pops a closure and a list of parameter values from the stack. The closure is applied to the parameters by installing its environment as the current one, pushing the parameter list in front of that, clearing the stack, and setting C to the closure's function pointer. The previous values of S, E, and the next value of C are saved on the dump.
-;;; ret pops one return value from the stack, restores S, E, and C from the dump, and pushes the return value onto the now-current stack.
-;;; dum pushes a "dummy", an empty list, in front of the environment list.
-;;; rap works like {\displaystyle ap}ap, only that it replaces an occurrence of a dummy environment with the current one, thus making recursive functions possible
-
-;;;    https://en.wikipedia.org/wiki/SECD_machine
 ;;;    https://en.wikipedia.org/wiki/ISWIM
 (define-language iswim
   ;; M denotes the ISWIM expressions (with alias of N,L,K), which includes
@@ -98,6 +80,7 @@
    (--> (in-hole E (o b ...))
         (in-hole E (δ (o b ...)))
         δv)
+   ;; following rules are just to show t/f value
    (--> (λ x (λ y x))
         true
         true1)
@@ -119,43 +102,16 @@
 ;; (traces iswim-standard
 ;;       (term (+ 3 2 )))
   
-
-(module+ test
-  (test-equal  (term (δ (iszero 0))) '(λ x (λ y x)))
-  (test-equal  (term (δ (iszero 4))) '(λ x (λ y y)))
-  (test-equal  (term (δ (add1 1)))   '2)
-  (test-equal  (term (δ (^ 3 2)))    '9)
-  )
 (define (test-suite)
   (test-->> iswim-red
             (term (iszero 0) )
-            (term (λ x (λ y x))))
+            (term true))
   (test-->> iswim-red
             (term (iszero 4) )
-            (term (λ x (λ y y))))
+            (term false))
   (test-->> iswim-red
             (term ((λ x1 (sub1 x1)) (+ 3 2 )))
             (term 4))
   (test-results))
 (test-suite)
-(traces iswim-red
-        (term ((λ x1 (sub1 x1)) (* 3 2 ))))
-;; simple fact program with Y combinator
-(traces iswim-red
-       (term ((λ x1 (sub1 x1)) (* 3 2 ))))
-;; λ x (sub1 x)
-;; f(x) = x + 1
-; add(x,y) = ( + x y)
-; add(x,y,z) = (+ x y z)
-; (x y z +)
-;;(λ x (λ y x)
-;;  f(x) = g(y)
-;;  g(y) = x
-;;  let x = z
-;;  f(x) [x = z] = (lambda y z) = z
-;;  f(z) = z
-;;  id()
-;;  (λ x (λ y y))
-;;  f(x) [x = z] = (lambda y y ) = y
-;;  
 ;;(render-redution-relation iswim-red)
